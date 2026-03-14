@@ -11,19 +11,20 @@
 
 namespace baranov_a_mult_matrix_fox_algorithm_omp {
 
-class BaranovAMultMatrixFoxAlgorithmOMPPerfTests
-    : public ppc::util::BaseRunPerfTests<baranov_a_mult_matrix_fox_algorithm::InType,
-                                         baranov_a_mult_matrix_fox_algorithm::OutType> {
+class BaranovAMultMatrixFoxAlgorithmOMPPerfTests : public ppc::util::BaseRunPerfTests<
+                                                    baranov_a_mult_matrix_fox_algorithm::InType,
+                                                    baranov_a_mult_matrix_fox_algorithm::OutType> {
   void SetUp() override {
     size_t n = 512;
 
     size_t size = n * n;
-    std::vector<double> a(size, 1.5);
-    std::vector<double> b(size, 2.0);
+    std::vector<double> a(size, 1.5); 
+    std::vector<double> b(size, 2.0); 
 
     input_data_ = std::make_tuple(n, a, b);
 
-    expected_output_.resize(size, 3.0 * n);
+    double expected_value = 3.0 * static_cast<double>(n);
+    expected_output_.resize(size, expected_value);
   }
 
   bool CheckTestOutputData(baranov_a_mult_matrix_fox_algorithm::OutType &output_data) final {
@@ -55,15 +56,17 @@ TEST_P(BaranovAMultMatrixFoxAlgorithmOMPPerfTests, RunPerfModes) {
 
 namespace {
 
-const auto kAllPerfTasksOmp =
-    ppc::util::MakeAllPerfTasks<baranov_a_mult_matrix_fox_algorithm::InType, BaranovAMultMatrixFoxAlgorithmOMP>(
+const auto kAllPerfTasksOmp = 
+    ppc::util::MakeAllPerfTasks<baranov_a_mult_matrix_fox_algorithm::InType, 
+                                 BaranovAMultMatrixFoxAlgorithmOMP>(
         PPC_SETTINGS_baranov_a_mult_matrix_fox_algorithm);
 
 const auto kGtestValuesOmp = ppc::util::TupleToGTestValues(kAllPerfTasksOmp);
 
 const auto kPerfTestName = BaranovAMultMatrixFoxAlgorithmOMPPerfTests::CustomPerfTestName;
 
-INSTANTIATE_TEST_SUITE_P(PerfTestsOmp, BaranovAMultMatrixFoxAlgorithmOMPPerfTests, kGtestValuesOmp, kPerfTestName);
+INSTANTIATE_TEST_SUITE_P(PerfTestsOmp, BaranovAMultMatrixFoxAlgorithmOMPPerfTests, 
+                         kGtestValuesOmp, kPerfTestName);
 
 }  // namespace
 
