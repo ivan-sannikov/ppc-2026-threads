@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "lazareva_a_matrix_mult_strassen/common/include/common.hpp"
+#include "lazareva_a_matrix_mult_strassen/omp/include/ops_omp.hpp"
 #include "lazareva_a_matrix_mult_strassen/seq/include/ops_seq.hpp"
 #include "util/include/func_test_util.hpp"
 #include "util/include/util.hpp"
@@ -80,14 +81,15 @@ const std::array<TestType, 5> kTestParam = {
     std::make_tuple(7, "7"), std::make_tuple(16, "16"),
 };
 
-const auto kTestTasksList =
-    ppc::util::AddFuncTask<LazarevaATestTaskSEQ, InType>(kTestParam, PPC_SETTINGS_lazareva_a_matrix_mult_strassen);
+const auto kTestTasksList = std::tuple_cat(
+    ppc::util::AddFuncTask<LazarevaATestTaskSEQ, InType>(kTestParam, PPC_SETTINGS_lazareva_a_matrix_mult_strassen),
+    ppc::util::AddFuncTask<LazarevaATestTaskOMP, InType>(kTestParam, PPC_SETTINGS_lazareva_a_matrix_mult_strassen));
 
 const auto kGtestValues = ppc::util::ExpandToValues(kTestTasksList);
 
 const auto kPerfTestName = LazarevaARunFuncTestsThreads::PrintFuncTestName<LazarevaARunFuncTestsThreads>;
 
-INSTANTIATE_TEST_SUITE_P(SeqMatrixTests, LazarevaARunFuncTestsThreads, kGtestValues, kPerfTestName);
+INSTANTIATE_TEST_SUITE_P(MatrixTests, LazarevaARunFuncTestsThreads, kGtestValues, kPerfTestName);
 
 }  // namespace
 
