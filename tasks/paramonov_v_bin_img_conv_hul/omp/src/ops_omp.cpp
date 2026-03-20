@@ -123,7 +123,8 @@ void ConvexHullOMP::ExtractConnectedComponents() {
     }
   }
 
-#pragma omp parallel for default(none) shared(start_points, total_pixels, rows, cols, working_image_, components)
+#pragma omp parallel for default(none) \
+    shared(start_points, total_pixels, rows, cols, working_image_, components, kNeighbors)
   for (size_t i = 0; i < start_points.size(); ++i) {
     const auto &start_point = start_points[i];
     int start_row = start_point.first;
