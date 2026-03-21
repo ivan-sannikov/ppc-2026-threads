@@ -19,8 +19,9 @@ class KrasnopevtsevaVHoareBatcherSortOMP : public BaseTask {
   bool PreProcessingImpl() override;
   bool RunImpl() override;
   bool PostProcessingImpl() override;
-  static int Partition(std::vector<int> &arr, int left, int right);
-  static void QuickSort(std::vector<int> &arr, int left, int right);
+  static int Partition(std::vector<int> &arr, int first, int last);
+  static void QuickSort(std::vector<int> &arr, int first, int last);
+  static void InsertionSort(std::vector<int> &arr, int first, int last);
   static void BatcherMergeBlocksStep(int *left_pointer, int &left_size, int *right_pointer, int &right_size);
   static void BatcherMerge(int thread_input_size, std::vector<int *> &pointers, std::vector<int> &sizes,
                            int par_if_greater);

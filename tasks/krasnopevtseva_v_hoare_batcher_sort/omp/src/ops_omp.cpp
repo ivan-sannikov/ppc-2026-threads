@@ -4,10 +4,13 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <stack>
 #include <utility>
 #include <vector>
 
 #include "krasnopevtseva_v_hoare_batcher_sort/common/include/common.hpp"
+
 namespace krasnopevtseva_v_hoare_batcher_sort {
 
 KrasnopevtsevaVHoareBatcherSortOMP::KrasnopevtsevaVHoareBatcherSortOMP(const InType &in) {
@@ -28,7 +31,7 @@ bool KrasnopevtsevaVHoareBatcherSortOMP::PreProcessingImpl() {
 
 bool KrasnopevtsevaVHoareBatcherSortOMP::RunImpl() {
   const auto &input = GetInput();
-  size_t size = input.size();
+  std::size_t size = input.size();
 
   if (size <= 1) {
     GetOutput() = input;
@@ -46,14 +49,15 @@ bool KrasnopevtsevaVHoareBatcherSortOMP::RunImpl() {
 
   std::vector<int *> pointers(numthreads);
   std::vector<int> sizes(numthreads);
-  for (int i = 0; i < numthreads; i++) {
-    pointers[i] = res.data() + (i * thread_input_size);
+  for (int i = 0; i < numthreads; ++i) {
+    std::ptrdiff_t offset = static_cast<std::ptrdiff_t>(i) * static_cast<std::ptrdiff_t>(thread_input_size);
+    pointers[i] = res.data() + offset;
     sizes[i] = thread_input_size;
   }
   sizes[sizes.size() - 1] += thread_input_remainder_size;
 
-#pragma omp parallel for
-  for (int i = 0; i < numthreads; i++) {
+#pragma omp parallel for default(none) shared(res, pointers, sizes, numthreads)
+  for (int i = 0; i < numthreads; ++i) {
     int left = static_cast<int>(pointers[i] - res.data());
     int right = left + sizes[i] - 1;
     QuickSort(res, left, right);
@@ -73,9 +77,9 @@ int KrasnopevtsevaVHoareBatcherSortOMP::Partition(std::vector<int> &arr, int fir
   int i = first - 1;
   int value = arr[last];
 
-  for (int j = first; j <= (last - 1); j++) {
+  for (int j = first; j <= last - 1; ++j) {
     if (arr[j] <= value) {
-      i++;
+      ++i;
       std::swap(arr[i], arr[j]);
     }
   }
@@ -83,11 +87,44 @@ int KrasnopevtsevaVHoareBatcherSortOMP::Partition(std::vector<int> &arr, int fir
   return i + 1;
 }
 
+void KrasnopevtsevaVHoareBatcherSortOMP::InsertionSort(std::vector<int> &arr, int first, int last) {
+  for (int i = first + 1; i <= last; ++i) {
+    int key = arr[i];
+    int j = i - 1;
+    while (j >= first && arr[j] > key) {
+      arr[j + 1] = arr[j];
+      --j;
+    }
+    arr[j + 1] = key;
+  }
+}
+
 void KrasnopevtsevaVHoareBatcherSortOMP::QuickSort(std::vector<int> &arr, int first, int last) {
-  if (first < last) {
-    int iter = Partition(arr, first, last);
-    QuickSort(arr, first, iter - 1);
-    QuickSort(arr, iter + 1, last);
+  std::stack<std::pair<int, int>> stack;
+  stack.emplace(first, last);
+
+  while (!stack.empty()) {
+    auto [l, r] = stack.top();
+    stack.pop();
+
+    if (l >= r) {
+      continue;
+    }
+
+    if (r - l < 16) {
+      InsertionSort(arr, l, r);
+      continue;
+    }
+
+    int iter = Partition(arr, l, r);
+
+    if (iter - l < r - iter) {
+      stack.emplace(iter + 1, r);
+      stack.emplace(l, iter - 1);
+    } else {
+      stack.emplace(l, iter - 1);
+      stack.emplace(iter + 1, r);
+    }
   }
 }
 
@@ -101,17 +138,20 @@ void KrasnopevtsevaVHoareBatcherSortOMP::BatcherMerge(int thread_input_size, std
                                                       std::vector<int> &sizes, int par_if_greater) {
   int pack = static_cast<int>(pointers.size());
   for (int step = 1; pack > 1; step *= 2, pack /= 2) {
-#pragma omp parallel for if ((thread_input_size / step) > par_if_greater)
+#pragma omp parallel for default(none) shared(pointers, sizes, pack, step, thread_input_size, \
+                                                  par_if_greater) if ((thread_input_size / step) > par_if_greater)
     for (int off = 0; off < pack / 2; ++off) {
-      BatcherMergeBlocksStep(pointers[2 * step * off], sizes[2 * step * off], pointers[(2 * step * off) + step],
-                             sizes[(2 * step * off) + step]);
+      std::size_t idx1 = static_cast<std::size_t>(2 * step * off);
+      std::size_t idx2 = static_cast<std::size_t>((2 * step * off) + step);
+      BatcherMergeBlocksStep(pointers[idx1], sizes[idx1], pointers[idx2], sizes[idx2]);
     }
     if ((pack / 2) - 1 == 0) {
       BatcherMergeBlocksStep(pointers[0], sizes[sizes.size() - 1], pointers[pointers.size() - 1],
                              sizes[sizes.size() - 1]);
     } else if ((pack / 2) % 2 != 0) {
-      BatcherMergeBlocksStep(pointers[2 * step * ((pack / 2) - 2)], sizes[2 * step * ((pack / 2) - 2)],
-                             pointers[2 * step * ((pack / 2) - 1)], sizes[2 * step * ((pack / 2) - 1)]);
+      std::size_t idx1 = static_cast<std::size_t>(2 * step * ((pack / 2) - 2));
+      std::size_t idx2 = static_cast<std::size_t>(2 * step * ((pack / 2) - 1));
+      BatcherMergeBlocksStep(pointers[idx1], sizes[idx1], pointers[idx2], sizes[idx2]);
     }
   }
 }
