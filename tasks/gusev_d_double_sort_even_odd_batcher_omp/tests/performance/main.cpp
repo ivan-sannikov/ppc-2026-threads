@@ -117,19 +117,19 @@ void RunPerfCase(const InType &input) {
   std::cout << "omp_run_time_sec:" << result.elapsed.count() << '\n';
 }
 
-TEST(GusevDoubleSortEvenOddBatcherOMPPerf, RunPerfTestOMPDescending) {
+TEST(gusev_d_double_sort_even_odd_batcher_omp_enabled_perf, RunPerfTestOMPDescending) {
   RunPerfCase(GenerateDescendingInput(kPerfInputSize));
 }
 
-TEST(GusevDoubleSortEvenOddBatcherOMPPerf, RunPerfTestOMPRandom) {
+TEST(gusev_d_double_sort_even_odd_batcher_omp_enabled_perf, RunPerfTestOMPRandom) {
   RunPerfCase(GenerateRandomInput(kPerfInputSize, 20260320));
 }
 
-TEST(GusevDoubleSortEvenOddBatcherOMPPerf, RunPerfTestOMPNearlySorted) {
+TEST(gusev_d_double_sort_even_odd_batcher_omp_enabled_perf, RunPerfTestOMPNearlySorted) {
   RunPerfCase(GenerateNearlySortedInput(kPerfInputSize));
 }
 
-TEST(GusevDoubleSortEvenOddBatcherOMPPerf, RunPerfTestOMPDuplicateHeavy) {
+TEST(gusev_d_double_sort_even_odd_batcher_omp_enabled_perf, RunPerfTestOMPDuplicateHeavy) {
   RunPerfCase(GenerateDuplicateHeavyInput(kPerfInputSize));
 }
 

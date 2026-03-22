@@ -185,88 +185,88 @@ OutType RunWithInputMutationAfterPreProcessing(const InType &input, ValueType fi
   return task.GetOutput();
 }
 
-TEST(GusevDoubleSortEvenOddBatcherOMP, SortsEmptyInput) {
+TEST(gusev_d_double_sort_even_odd_batcher_omp_enabled, SortsEmptyInput) {
   CheckMatchesStdSort({});
 }
 
-TEST(GusevDoubleSortEvenOddBatcherOMP, SortsSingleElement) {
+TEST(gusev_d_double_sort_even_odd_batcher_omp_enabled, SortsSingleElement) {
   CheckMatchesStdSort({42.0});
 }
 
-TEST(GusevDoubleSortEvenOddBatcherOMP, SortsAlreadySortedInput) {
+TEST(gusev_d_double_sort_even_odd_batcher_omp_enabled, SortsAlreadySortedInput) {
   CheckMatchesStdSort({-7.0, -2.0, -0.0, 0.0, 1.5, 3.0, 4.0, 9.0});
 }
 
-TEST(GusevDoubleSortEvenOddBatcherOMP, SortsReverseSortedInput) {
+TEST(gusev_d_double_sort_even_odd_batcher_omp_enabled, SortsReverseSortedInput) {
   CheckMatchesStdSort({9.0, 4.0, 3.0, 1.5, 0.0, -0.0, -2.0, -7.0});
 }
 
-TEST(GusevDoubleSortEvenOddBatcherOMP, SortsOddSizedInput) {
+TEST(gusev_d_double_sort_even_odd_batcher_omp_enabled, SortsOddSizedInput) {
   CheckMatchesStdSort({3.0, -1.0, 2.0, 0.0, 5.0});
 }
 
-TEST(GusevDoubleSortEvenOddBatcherOMP, SortsDenseDuplicateInput) {
+TEST(gusev_d_double_sort_even_odd_batcher_omp_enabled, SortsDenseDuplicateInput) {
   CheckMatchesStdSort(MakeDenseDuplicateInput());
 }
 
-TEST(GusevDoubleSortEvenOddBatcherOMP, SortsAllEqualInput) {
+TEST(gusev_d_double_sort_even_odd_batcher_omp_enabled, SortsAllEqualInput) {
   CheckMatchesStdSort(InType(257, 3.5));
 }
 
-TEST(GusevDoubleSortEvenOddBatcherOMP, MatchesStdSortForPrimeSizedRandomInput) {
+TEST(gusev_d_double_sort_even_odd_batcher_omp_enabled, MatchesStdSortForPrimeSizedRandomInput) {
   CheckMatchesStdSort(GenerateRandomInput(997, 20260320));
 }
 
-TEST(GusevDoubleSortEvenOddBatcherOMP, MatchesStdSortForLargeRandomInput) {
+TEST(gusev_d_double_sort_even_odd_batcher_omp_enabled, MatchesStdSortForLargeRandomInput) {
   CheckMatchesStdSort(GenerateRandomInput(4096, 20260321));
 }
 
-TEST(GusevDoubleSortEvenOddBatcherOMP, MatchesStdSortForExtremesAndSignedZeros) {
+TEST(gusev_d_double_sort_even_odd_batcher_omp_enabled, MatchesStdSortForExtremesAndSignedZeros) {
   CheckMatchesStdSort(MakeExtremeInput());
 }
 
-TEST(GusevDoubleSortEvenOddBatcherOMP, MatchesStdSortForAlternatingMagnitudeInput) {
+TEST(gusev_d_double_sort_even_odd_batcher_omp_enabled, MatchesStdSortForAlternatingMagnitudeInput) {
   CheckMatchesStdSort(MakeAlternatingMagnitudeInput());
 }
 
-TEST(GusevDoubleSortEvenOddBatcherOMP, MatchesStdSortWhenInputSizeIsLessThanThreadCount) {
+TEST(gusev_d_double_sort_even_odd_batcher_omp_enabled, MatchesStdSortWhenInputSizeIsLessThanThreadCount) {
   const OmpThreadCountGuard guard(8);
   CheckMatchesStdSort({7.0, -4.0, 2.5});
 }
 
-TEST(GusevDoubleSortEvenOddBatcherOMP, MatchesStdSortForOddNumberOfBlocks) {
+TEST(gusev_d_double_sort_even_odd_batcher_omp_enabled, MatchesStdSortForOddNumberOfBlocks) {
   const OmpThreadCountGuard guard(5);
   CheckMatchesStdSort(GenerateRandomInput(23, 20260322));
 }
 
-TEST(GusevDoubleSortEvenOddBatcherOMP, ValidationRejectsPreparedOutput) {
+TEST(gusev_d_double_sort_even_odd_batcher_omp_enabled, ValidationRejectsPreparedOutput) {
   EXPECT_TRUE(ValidationRejectsPreparedOutputImpl());
 }
 
-TEST(GusevDoubleSortEvenOddBatcherOMP, ThrowsIfPreProcessingBeforeValidation) {
+TEST(gusev_d_double_sort_even_odd_batcher_omp_enabled, ThrowsIfPreProcessingBeforeValidation) {
   EXPECT_TRUE(ThrowsIfPreProcessingBeforeValidationImpl());
 }
 
-TEST(GusevDoubleSortEvenOddBatcherOMP, ThrowsIfRunBeforePreProcessing) {
+TEST(gusev_d_double_sort_even_odd_batcher_omp_enabled, ThrowsIfRunBeforePreProcessing) {
   EXPECT_TRUE(ThrowsIfRunBeforePreProcessingImpl());
 }
 
-TEST(GusevDoubleSortEvenOddBatcherOMP, ThrowsIfPostProcessingBeforeRun) {
+TEST(gusev_d_double_sort_even_odd_batcher_omp_enabled, ThrowsIfPostProcessingBeforeRun) {
   EXPECT_TRUE(ThrowsIfPostProcessingBeforeRunImpl());
 }
 
-TEST(GusevDoubleSortEvenOddBatcherOMP, AllowsRepeatedRunBeforePostProcessing) {
+TEST(gusev_d_double_sort_even_odd_batcher_omp_enabled, AllowsRepeatedRunBeforePostProcessing) {
   const InType input{9.0, -1.0, 5.0, 3.0, -7.0, 11.0, 0.0, 2.0};
   const auto expected_output = RunTaskPipeline(input);
   EXPECT_EQ(RunTaskTwiceBeforePostProcessing(input), expected_output);
 }
 
-TEST(GusevDoubleSortEvenOddBatcherOMP, UsesInputSnapshotFromPreProcessing) {
+TEST(gusev_d_double_sort_even_odd_batcher_omp_enabled, UsesInputSnapshotFromPreProcessing) {
   EXPECT_EQ(RunWithInputMutationAfterPreProcessing({5.0, 4.0, 3.0, 2.0, 1.0}, -100.0, 200.0),
             (OutType{1.0, 2.0, 3.0, 4.0, 5.0}));
 }
 
-TEST(GusevDoubleSortEvenOddBatcherOMP, KeepsElementMultiplicity) {
+TEST(gusev_d_double_sort_even_odd_batcher_omp_enabled, KeepsElementMultiplicity) {
   const auto input = MakeDenseDuplicateInput();
   const auto output = RunTaskPipeline(input);
 
@@ -274,7 +274,7 @@ TEST(GusevDoubleSortEvenOddBatcherOMP, KeepsElementMultiplicity) {
   EXPECT_TRUE(std::ranges::is_permutation(output, input));
 }
 
-TEST(GusevDoubleSortEvenOddBatcherOMP, KeepsOutputEmptyAfterRunningOnEmptyInput) {
+TEST(gusev_d_double_sort_even_odd_batcher_omp_enabled, KeepsOutputEmptyAfterRunningOnEmptyInput) {
   const auto output = RunTaskPipeline({});
   EXPECT_TRUE(output.empty());
 }
