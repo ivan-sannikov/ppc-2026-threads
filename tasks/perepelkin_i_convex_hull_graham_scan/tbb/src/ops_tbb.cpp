@@ -1,9 +1,9 @@
 #include "perepelkin_i_convex_hull_graham_scan/tbb/include/ops_tbb.hpp"
 
-#include <tbb/parallel_reduce.h>
-#include <tbb/parallel_sort.h>
 #include <tbb/blocked_range.h>
 #include <tbb/global_control.h>
+#include <tbb/parallel_reduce.h>
+#include <tbb/parallel_sort.h>
 
 #include <algorithm>
 #include <cmath>
@@ -38,10 +38,8 @@ bool PerepelkinIConvexHullGrahamScanTBB::RunImpl() {
     return true;
   }
 
-  tbb::global_control gc(
-    tbb::global_control::max_allowed_parallelism,
-    ppc::util::GetNumThreads());
-    
+  tbb::global_control gc(tbb::global_control::max_allowed_parallelism, ppc::util::GetNumThreads());
+
   std::vector<std::pair<double, double>> pts = data;
 
   // Find pivot
@@ -63,28 +61,19 @@ bool PerepelkinIConvexHullGrahamScanTBB::RunImpl() {
 
 size_t PerepelkinIConvexHullGrahamScanTBB::FindPivotParallel(const std::vector<std::pair<double, double>> &pts) {
   auto better = [&](size_t a, size_t b) {
-    if (pts[b].second < pts[a].second ||
-        (pts[b].second == pts[a].second && pts[b].first < pts[a].first)) {
+    if (pts[b].second < pts[a].second || (pts[b].second == pts[a].second && pts[b].first < pts[a].first)) {
       return b;
     }
     return a;
   };
 
-  size_t pivot = tbb::parallel_reduce(
-    tbb::blocked_range<size_t>(1, pts.size()),
-    size_t(0),
-
-    [&](const tbb::blocked_range<size_t> &r, size_t local_idx) {
-      for (size_t i = r.begin(); i != r.end(); ++i) {
-        local_idx = better(local_idx, i);
-      }
-      return local_idx;
-    },
-
-    [&](size_t a, size_t b) {
-      return better(a, b);
+  size_t pivot = tbb::parallel_reduce(tbb::blocked_range<size_t>(1, pts.size()), static_cast<size_t>(0),
+                                      [&](const tbb::blocked_range<size_t> &r, size_t local_idx) {
+    for (size_t i = r.begin(); i != r.end(); i++) {
+      local_idx = better(local_idx, i);
     }
-  );
+    return local_idx;
+  }, [&](size_t a, size_t b) { return better(a, b); });
 
   return pivot;
 }
@@ -98,19 +87,12 @@ void PerepelkinIConvexHullGrahamScanTBB::ParallelSort(std::vector<std::pair<doub
     return;
   }
 
-  tbb::parallel_sort(
-    data.begin(),
-    data.end(),
-    [&](const auto &a, const auto &b) {
-      return AngleCmp(a, b, pivot);
-  });
+  tbb::parallel_sort(data.begin(), data.end(), [&](const auto &a, const auto &b) { return AngleCmp(a, b, pivot); });
 }
 
 void perepelkin_i_convex_hull_graham_scan::PerepelkinIConvexHullGrahamScanTBB::HullConstruction(
-  std::vector<std::pair<double, double>> &hull, 
-  const std::vector<std::pair<double, double>>& pts, 
-  const std::pair<double, double>& pivot) 
-{
+    std::vector<std::pair<double, double>> &hull, const std::vector<std::pair<double, double>> &pts,
+    const std::pair<double, double> &pivot) {
   hull.reserve(pts.size() + 1);
 
   hull.push_back(pivot);
@@ -124,7 +106,6 @@ void perepelkin_i_convex_hull_graham_scan::PerepelkinIConvexHullGrahamScanTBB::H
     hull.push_back(pts[i]);
   }
 }
-
 
 double PerepelkinIConvexHullGrahamScanTBB::Orientation(const std::pair<double, double> &p,
                                                        const std::pair<double, double> &q,
