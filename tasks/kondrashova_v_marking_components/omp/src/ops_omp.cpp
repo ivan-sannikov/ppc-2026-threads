@@ -23,9 +23,9 @@ bool KondrashovaVTaskOMP::ValidationImpl() {
 bool KondrashovaVTaskOMP::PreProcessingImpl() {
   const auto &in = GetInput();
 
+  image_ = in.data;
   width_ = in.width;
   height_ = in.height;
-  image_ = in.data;
 
   if (width_ > 0 && height_ > 0 && static_cast<int>(image_.size()) == width_ * height_) {
     labels_1d_.assign(static_cast<size_t>(width_) * static_cast<size_t>(height_), 0);
