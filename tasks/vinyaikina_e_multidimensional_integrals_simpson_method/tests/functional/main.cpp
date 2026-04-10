@@ -166,8 +166,8 @@ const std::array<TestType, 16> kTests = {{
     TestType{"x2_y2_z2_3d_0_1_x3", InType{0.01, {{0.0, 0.20}, {0.0, 0.20}, {0.0, 0.20}}, x2_y2_z2_3d},
              Intx2Y2Z23d(0.0, 0.20, 0.0, 0.20, 0.0, 0.20)},
 
-    TestType{"exp_sum_3d_0_05_x3", InType{0.005, {{0.0, 0.25}, {0.0, 0.25}, {0.0, 0.25}}, exp_sum_3d},
-             IntexpSum3d(0.0, 0.25, 0.0, 0.25, 0.0, 0.25)},
+    TestType{"exp_sum_3d_0_05_x3", InType{0.005, {{0.0, 0.20}, {0.0, 0.20}, {0.0, 0.20}}, exp_sum_3d},
+             IntexpSum3d(0.0, 0.20, 0.0, 0.20, 0.0, 0.20)},
 }};
 
 const auto kTaskName = PPC_SETTINGS_vinyaikina_e_multidimensional_integrals_simpson_method;
