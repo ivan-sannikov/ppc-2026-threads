@@ -1,5 +1,7 @@
 #include "posternak_a_crs_mul_complex_matrix/tbb/include/ops_tbb.hpp"
 
+#include <tbb/tbb.h>
+
 #include <algorithm>
 #include <cmath>
 #include <complex>
@@ -7,7 +9,6 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include <tbb/tbb.h>
 
 #include "posternak_a_crs_mul_complex_matrix/common/include/common.hpp"
 
@@ -126,24 +127,19 @@ bool PosternakACRSMulComplexMatrixTBB::RunImpl() {
   constexpr double kThreshold = 1e-12;
   std::vector<size_t> no_zero_rows(res.rows, 0);
 
-
-  tbb::parallel_for(
-      tbb::blocked_range<int>(0, res.rows),
-      [&](const tbb::blocked_range<int> &range) {
-        for (int row = range.begin(); row != range.end(); ++row) {
-          no_zero_rows[row] = ComputeRowNoZeroCount(a, b, row, kThreshold);
-        }
-      });
+  tbb::parallel_for(tbb::blocked_range<int>(0, res.rows), [&](const tbb::blocked_range<int> &range) {
+    for (int row = range.begin(); row != range.end(); ++row) {
+      no_zero_rows[row] = ComputeRowNoZeroCount(a, b, row, kThreshold);
+    }
+  });
 
   BuildResultStructure(res, no_zero_rows);
 
-  tbb::parallel_for(
-      tbb::blocked_range<int>(0, res.rows),
-      [&](const tbb::blocked_range<int> &range) {
-        for (int row = range.begin(); row != range.end(); ++row) {
-          ComputeAndWriteRow(a, b, res, row, kThreshold);
-        }
-      });
+  tbb::parallel_for(tbb::blocked_range<int>(0, res.rows), [&](const tbb::blocked_range<int> &range) {
+    for (int row = range.begin(); row != range.end(); ++row) {
+      ComputeAndWriteRow(a, b, res, row, kThreshold);
+    }
+  });
 
   return res.IsValid();
 }
