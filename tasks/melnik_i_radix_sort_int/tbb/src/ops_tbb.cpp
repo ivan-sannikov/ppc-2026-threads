@@ -18,20 +18,16 @@ namespace {
 
 constexpr int kBitsPerPass = 8;
 constexpr std::size_t kBuckets = 1U << kBitsPerPass;
-constexpr std::size_t kMinChunkSize = 1U << 15;
 
 std::vector<MelnikIRadixSortIntTBB::Range> BuildInitialRanges(std::size_t data_size, int num_ranges) {
   std::vector<MelnikIRadixSortIntTBB::Range> ranges;
   ranges.reserve(static_cast<std::size_t>(num_ranges));
-  const std::size_t chunk_size =
-      (data_size + static_cast<std::size_t>(num_ranges) - 1U) / static_cast<std::size_t>(num_ranges);
 
   for (int range_index = 0; range_index < num_ranges; ++range_index) {
-    const std::size_t begin = static_cast<std::size_t>(range_index) * chunk_size;
-    if (begin >= data_size) {
-      break;
-    }
-    const std::size_t end = std::min(begin + chunk_size, data_size);
+    const std::size_t begin =
+        (data_size * static_cast<std::size_t>(range_index)) / static_cast<std::size_t>(num_ranges);
+    const std::size_t end =
+        (data_size * (static_cast<std::size_t>(range_index) + 1U)) / static_cast<std::size_t>(num_ranges);
     ranges.push_back(MelnikIRadixSortIntTBB::Range{.begin = begin, .end = end});
   }
 
@@ -62,22 +58,12 @@ bool MelnikIRadixSortIntTBB::RunImpl() {
 
   const std::size_t data_size = GetOutput().size();
   const int requested_threads = std::max(1, ppc::util::GetNumThreads());
-  const int max_ranges_by_size = std::max<int>(1, static_cast<int>((data_size + kMinChunkSize - 1U) / kMinChunkSize));
-  const int num_ranges = std::min({requested_threads, static_cast<int>(data_size), max_ranges_by_size});
+  const int num_ranges = std::min(requested_threads, static_cast<int>(data_size));
 
   std::vector<int> buffer(data_size);
   auto &output = GetOutput();
 
-  if (num_ranges <= 1) {
-    RadixSortRange(output, buffer, 0, data_size);
-    return !output.empty();
-  }
-
   const std::vector<Range> ranges = BuildInitialRanges(data_size, num_ranges);
-  if (ranges.size() <= 1U) {
-    RadixSortRange(output, buffer, 0, data_size);
-    return !output.empty();
-  }
 
   tbb::parallel_for(tbb::blocked_range<std::size_t>(0, ranges.size()),
                     [&](const tbb::blocked_range<std::size_t> &range_block) {
@@ -179,20 +165,6 @@ void MelnikIRadixSortIntTBB::MergeRanges(const std::vector<int> &source, std::ve
 
 void MelnikIRadixSortIntTBB::MergeSortedRanges(std::vector<int> &data, std::vector<int> &buffer,
                                                const std::vector<Range> &ranges) {
-  if (ranges.empty()) {
-    return;
-  }
-
-  if (ranges.size() == 1U) {
-    return;
-  }
-
-  if (ranges.size() == 2U) {
-    MergeRanges(data, buffer, ranges[0], ranges[1], 0);
-    data.swap(buffer);
-    return;
-  }
-
   std::vector<int> *source = &data;
   std::vector<int> *destination = &buffer;
   std::vector<Range> current_ranges = ranges;
