@@ -1,5 +1,6 @@
 #include "../include/radix_sort_stl.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -36,11 +37,8 @@ int GetThreadCount(std::size_t size) {
     num_threads = 1;
   }
 
-  if (num_threads > static_cast<int>(size)) {
-    num_threads = static_cast<int>(size);
-  }
-
-  return num_threads;
+  const auto max_threads = static_cast<int>(size);
+  return std::min(num_threads, max_threads);
 }
 
 std::vector<std::pair<std::size_t, std::size_t>> BuildRanges(std::size_t size, int num_threads) {
