@@ -64,7 +64,7 @@ void ProcessColumn(int j, const SparseMatrixCCS &a, const SparseMatrixCCS &b, st
 
 void ComputeDispls(const std::vector<int> &recv_counts, std::vector<int> &displs, int &total_nnz) {
   total_nnz = 0;
-  for (int i = 0; i < static_cast<int>(recv_counts.size()); i++) {
+  for (size_t i = 0; i < recv_counts.size(); i++) {
     displs[i] = total_nnz;
     total_nnz += recv_counts[i];
   }
