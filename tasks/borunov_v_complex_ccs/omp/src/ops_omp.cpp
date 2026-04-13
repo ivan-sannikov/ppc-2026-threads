@@ -54,7 +54,6 @@ void ProcessColumn(int j, const SparseMatrix &a, const SparseMatrix &b, int tid,
                    std::vector<std::vector<int>> &t_row_indices, std::vector<std::vector<int>> &t_col_nnz) {
   touched.clear();
 
-  // Accumulate contributions from each non-zero in column j of B
   for (int bk = b.col_ptrs[j]; bk < b.col_ptrs[j + 1]; ++bk) {
     const int p = b.row_indices[bk];
     const std::complex<double> bval = b.values[bk];
@@ -69,10 +68,8 @@ void ProcessColumn(int j, const SparseMatrix &a, const SparseMatrix &b, int tid,
     }
   }
 
-  // Sort rows for canonical CCS output
   std::sort(touched.begin(), touched.end());
 
-  // Flush non-zero results to per-thread storage
   for (int i : touched) {
     if (std::abs(acc[i]) > 1e-9) {
       t_values[tid].push_back(acc[i]);
@@ -87,7 +84,6 @@ void MergeResults(int num_threads, int bc, SparseMatrix &c,
                   const std::vector<std::vector<std::complex<double>>> &t_values,
                   const std::vector<std::vector<int>> &t_row_indices,
                   const std::vector<std::vector<int>> &t_col_nnz) {
-  // Sequential merge: build final col_ptrs and concatenate per-thread data
   for (int tid = 0; tid < num_threads; ++tid) {
     const int jstart = (tid * bc) / num_threads;
     const int jend = ((tid + 1) * bc) / num_threads;
@@ -116,7 +112,6 @@ bool BorunovVComplexCcsOMP::RunImpl() {
   const int num_threads = ppc::util::GetNumThreads();
   const int bc = b.num_cols;
 
-  // Per-thread storage
   std::vector<std::vector<std::complex<double>>> t_values(num_threads);
   std::vector<std::vector<int>> t_row_indices(num_threads);
   std::vector<std::vector<int>> t_col_nnz(num_threads);
