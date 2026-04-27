@@ -1,8 +1,10 @@
 #include "zavyalov_a_complex_sparse_matrix_mult/stl/include/ops_stl.hpp"
 
-#include <atomic>
-#include <numeric>
+#include <algorithm>
+#include <map>
+#include <stdexcept>
 #include <thread>
+#include <utility>
 #include <vector>
 
 #include "util/include/util.hpp"
@@ -17,17 +19,17 @@ SparseMatrix ZavyalovAComplSparseMatrMultSTL::MultiplicateWithStl(const SparseMa
   }
 
   int num_threads = ppc::util::GetNumThreads();
-  size_t total = matr_a.Count();
+  std::size_t total = matr_a.Count();
 
-  std::vector<std::map<std::pair<size_t, size_t>, Complex>> local_maps(num_threads);
+  std::vector<std::map<std::pair<std::size_t, std::size_t>, Complex>> local_maps(num_threads);
 
-  auto worker = [&](int tid, size_t start, size_t end) {
-    for (size_t i = start; i < end; ++i) {
-      size_t row_a = matr_a.row_ind[i];
-      size_t col_a = matr_a.col_ind[i];
+  auto worker = [&](int tid, std::size_t start, std::size_t end) {
+    for (std::size_t i = start; i < end; ++i) {
+      std::size_t row_a = matr_a.row_ind[i];
+      std::size_t col_a = matr_a.col_ind[i];
       Complex val_a = matr_a.val[i];
 
-      for (size_t j = 0; j < matr_b.Count(); ++j) {
+      for (std::size_t j = 0; j < matr_b.Count(); ++j) {
         if (col_a == matr_b.row_ind[j]) {
           local_maps[tid][{row_a, matr_b.col_ind[j]}] += val_a * matr_b.val[j];
         }
@@ -38,12 +40,12 @@ SparseMatrix ZavyalovAComplSparseMatrMultSTL::MultiplicateWithStl(const SparseMa
   std::vector<std::thread> threads;
   threads.reserve(num_threads);
 
-  size_t chunk = (total + num_threads - 1) / num_threads;
-  for (int t = 0; t < num_threads; ++t) {
-    size_t start = t * chunk;
-    size_t end = std::min(start + chunk, total);
+  std::size_t chunk = (total + num_threads - 1) / num_threads;
+  for (int ti = 0; ti < num_threads; ++ti) {
+    std::size_t start = ti * chunk;
+    std::size_t end = std::min(start + chunk, total);
     if (start < total) {
-      threads.emplace_back(worker, t, start, end);
+      threads.emplace_back(worker, ti, start, end);
     }
   }
 
@@ -51,7 +53,7 @@ SparseMatrix ZavyalovAComplSparseMatrMultSTL::MultiplicateWithStl(const SparseMa
     th.join();
   }
 
-  std::map<std::pair<size_t, size_t>, Complex> mp;
+  std::map<std::pair<std::size_t, std::size_t>, Complex> mp;
   for (auto &lm : local_maps) {
     for (auto &[key, value] : lm) {
       mp[key] += value;
