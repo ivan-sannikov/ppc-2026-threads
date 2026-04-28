@@ -216,12 +216,16 @@ TEST_P(SabutayARunFuncTestsThreadsALL, MatmulFromPic) {
 
 const std::array<TestType, 3> kTestParam{0, 1, 2};
 
-const auto kTestTasksList =
-    std::tuple_cat(ppc::util::AddFuncTask<SabutaySparseComplexCcsMultAll, InType>(kTestParam, PPC_SETTINGS_sabutay_sparse_complex_ccs_mult_all),
-                   ppc::util::AddFuncTask<SabutaySparseComplexCcsMultOmpFix, InType>(kTestParam, PPC_SETTINGS_sabutay_sparse_complex_ccs_mult_all),
-                   ppc::util::AddFuncTask<SabutaySparseComplexCcsMultFixSEQ, InType>(kTestParam, PPC_SETTINGS_sabutay_sparse_complex_ccs_mult_all),
-                   ppc::util::AddFuncTask<SabutaySparseComplexCcsMultSTL, InType>(kTestParam, PPC_SETTINGS_sabutay_sparse_complex_ccs_mult_all),
-                   ppc::util::AddFuncTask<SabutaySparseComplexCcsMultFixTBB, InType>(kTestParam, PPC_SETTINGS_sabutay_sparse_complex_ccs_mult_all));
+const auto kTestTasksList = std::tuple_cat(ppc::util::AddFuncTask<SabutaySparseComplexCcsMultAll, InType>(
+                                               kTestParam, PPC_SETTINGS_sabutay_sparse_complex_ccs_mult_all),
+                                           ppc::util::AddFuncTask<SabutaySparseComplexCcsMultOmpFix, InType>(
+                                               kTestParam, PPC_SETTINGS_sabutay_sparse_complex_ccs_mult_all),
+                                           ppc::util::AddFuncTask<SabutaySparseComplexCcsMultFixSEQ, InType>(
+                                               kTestParam, PPC_SETTINGS_sabutay_sparse_complex_ccs_mult_all),
+                                           ppc::util::AddFuncTask<SabutaySparseComplexCcsMultSTL, InType>(
+                                               kTestParam, PPC_SETTINGS_sabutay_sparse_complex_ccs_mult_all),
+                                           ppc::util::AddFuncTask<SabutaySparseComplexCcsMultFixTBB, InType>(
+                                               kTestParam, PPC_SETTINGS_sabutay_sparse_complex_ccs_mult_all));
 
 const auto kGtestValues = ppc::util::ExpandToValues(kTestTasksList);
 
