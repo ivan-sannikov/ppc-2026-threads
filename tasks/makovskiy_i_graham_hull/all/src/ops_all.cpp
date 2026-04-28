@@ -7,7 +7,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <future>
-#include <thread>
 #include <utility>
 #include <vector>
 
@@ -196,13 +195,83 @@ std::vector<Point> ComputeHullSTL(const std::vector<Point> &input_points) {
 
   StlParallelSort(points.begin() + 1, points.end(), comp);
 
-  const std::vector<Point> filtered = FilterPointsSTL(points, p0);
+  std::vector<Point> filtered = FilterPointsSTL(points, p0);
 
   if (filtered.size() < 3) {
     return filtered;
   }
 
   return BuildHull(filtered);
+}
+
+std::vector<Point> ScatterPoints(int rank, int size, const std::vector<Point> &input_points) {
+  std::vector<Point> local_points;
+  if (rank == 0) {
+    const int num_points = static_cast<int>(input_points.size());
+    if (size > 1) {
+      const int chunk = num_points / size;
+      const int rem = num_points % size;
+
+      int offset = chunk + (rem > 0 ? 1 : 0);
+      for (int i = 1; i < size; ++i) {
+        const int count = chunk + (i < rem ? 1 : 0);
+        MPI_Send(&count, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
+        if (count > 0) {
+          MPI_Send(input_points.data() + offset, count * 2, MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
+        }
+        offset += count;
+      }
+
+      const int local_count = chunk + (rem > 0 ? 1 : 0);
+      local_points.assign(input_points.begin(), input_points.begin() + local_count);
+    } else {
+      local_points = input_points;
+    }
+  } else {
+    int count = 0;
+    MPI_Recv(&count, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    if (count > 0) {
+      local_points.resize(static_cast<size_t>(count));
+      MPI_Recv(local_points.data(), count * 2, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
+  }
+  return local_points;
+}
+
+std::vector<Point> GatherHulls(int rank, int size, const std::vector<Point> &local_hull) {
+  if (size <= 1) {
+    return local_hull;
+  }
+
+  int local_hull_size = static_cast<int>(local_hull.size());
+  std::vector<int> hull_sizes(static_cast<size_t>(size), 0);
+
+  MPI_Gather(&local_hull_size, 1, MPI_INT, rank == 0 ? hull_sizes.data() : nullptr, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+  std::vector<int> displs;
+  std::vector<int> recvcounts;
+  int total_hull_points = 0;
+
+  if (rank == 0) {
+    displs.resize(static_cast<size_t>(size), 0);
+    recvcounts.resize(static_cast<size_t>(size), 0);
+    for (int i = 0; i < size; ++i) {
+      const auto idx = static_cast<size_t>(i);
+      recvcounts[idx] = hull_sizes[idx] * 2;
+      displs[idx] = total_hull_points * 2;
+      total_hull_points += hull_sizes[idx];
+    }
+  }
+
+  std::vector<Point> all_hulls;
+  if (rank == 0) {
+    all_hulls.resize(static_cast<size_t>(total_hull_points));
+  }
+
+  MPI_Gatherv(local_hull.data(), local_hull_size * 2, MPI_DOUBLE, rank == 0 ? all_hulls.data() : nullptr,
+              recvcounts.data(), displs.data(), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+  return all_hulls;
 }
 
 }  // namespace
@@ -226,77 +295,20 @@ bool ConvexHullGrahamALL::RunImpl() {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-  std::vector<Point> local_points;
-
+  std::vector<Point> input_points;
   if (rank == 0) {
-    const auto &points = GetInput();
-    const int num_points = static_cast<int>(points.size());
-
-    if (size > 1) {
-      const int chunk = num_points / size;
-      const int rem = num_points % size;
-
-      int offset = chunk + (rem > 0 ? 1 : 0);
-      for (int i = 1; i < size; ++i) {
-        const int count = chunk + (i < rem ? 1 : 0);
-        MPI_Send(&count, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
-        if (count > 0) {
-          MPI_Send(points.data() + offset, count * 2, MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
-        }
-        offset += count;
-      }
-
-      const int local_count = chunk + (rem > 0 ? 1 : 0);
-      local_points.assign(points.begin(), points.begin() + local_count);
-    } else {
-      local_points = points;
-    }
-  } else {
-    int count = 0;
-    MPI_Recv(&count, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    if (count > 0) {
-      local_points.resize(static_cast<size_t>(count));
-      MPI_Recv(local_points.data(), count * 2, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    }
+    input_points = GetInput();
   }
 
+  std::vector<Point> local_points = ScatterPoints(rank, size, input_points);
   std::vector<Point> local_hull = ComputeHullSTL(local_points);
+  std::vector<Point> all_hulls = GatherHulls(rank, size, local_hull);
 
-  if (size > 1) {
-    int local_hull_size = static_cast<int>(local_hull.size());
-    std::vector<int> hull_sizes(static_cast<size_t>(size), 0);
-
-    MPI_Gather(&local_hull_size, 1, MPI_INT, rank == 0 ? hull_sizes.data() : nullptr, 1, MPI_INT, 0, MPI_COMM_WORLD);
-
-    std::vector<int> displs;
-    std::vector<int> recvcounts;
-    int total_hull_points = 0;
-
-    if (rank == 0) {
-      displs.resize(static_cast<size_t>(size), 0);
-      recvcounts.resize(static_cast<size_t>(size), 0);
-      for (int i = 0; i < size; ++i) {
-        const size_t idx = static_cast<size_t>(i);
-        recvcounts[idx] = hull_sizes[idx] * 2;
-        displs[idx] = total_hull_points * 2;
-        total_hull_points += hull_sizes[idx];
-      }
-    }
-
-    std::vector<Point> all_hulls;
-    if (rank == 0) {
-      all_hulls.resize(static_cast<size_t>(total_hull_points));
-    }
-
-    MPI_Gatherv(local_hull.data(), local_hull_size * 2, MPI_DOUBLE, rank == 0 ? all_hulls.data() : nullptr,
-                recvcounts.data(), displs.data(), MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
-    if (rank == 0) {
+  if (rank == 0) {
+    if (size > 1) {
       GetOutput() = ComputeHullSTL(all_hulls);
-    }
-  } else {
-    if (rank == 0) {
-      GetOutput() = local_hull;
+    } else {
+      GetOutput() = all_hulls;
     }
   }
 
