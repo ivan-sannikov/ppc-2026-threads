@@ -1,7 +1,7 @@
 #pragma once
 
-#include "tsibareva_e_integral_calculate_trapezoid_method/common/include/common.hpp"
 #include "task/include/task.hpp"
+#include "tsibareva_e_integral_calculate_trapezoid_method/common/include/common.hpp"
 
 namespace tsibareva_e_integral_calculate_trapezoid_method {
 

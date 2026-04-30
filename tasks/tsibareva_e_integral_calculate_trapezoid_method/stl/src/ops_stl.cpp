@@ -1,4 +1,3 @@
-// tsibareva_e_integral_calculate_trapezoid_method/stl/src/ops_stl.cpp
 #include "tsibareva_e_integral_calculate_trapezoid_method/stl/include/ops_stl.hpp"
 
 #include <cmath>
@@ -10,7 +9,8 @@
 
 namespace tsibareva_e_integral_calculate_trapezoid_method {
 
-TsibarevaEIntegralCalculateTrapezoidMethodSTL::TsibarevaEIntegralCalculateTrapezoidMethodSTL(const InType &in) {
+TsibarevaEIntegralCalculateTrapezoidMethodSTL::TsibarevaEIntegralCalculateTrapezoidMethodSTL(const InType &in)
+    : BaseTask() {
   SetTypeOfTask(GetStaticTypeOfTask());
   GetInput() = in;
   GetOutput() = 0.0;
