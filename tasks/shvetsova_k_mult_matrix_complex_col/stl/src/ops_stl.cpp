@@ -1,14 +1,12 @@
 #include "../include/ops_stl.hpp"
 
 #include <algorithm>
-#include <atomic>
 #include <complex>
-#include <numeric>
 #include <thread>
+#include <utility>
 #include <vector>
 
 #include "../../common/include/common.hpp"
-#include "util/include/util.hpp"
 
 namespace shvetsova_k_mult_matrix_complex_col {
 
@@ -16,6 +14,30 @@ struct SparseColumn {
   std::vector<int> rows;
   std::vector<std::complex<double>> vals;
 };
+
+// Выносим логику в анонимное пространство имен для снижения когнитивной сложности RunImpl
+namespace {
+void ComputeColumnTask(int col_idx, const MatrixCCS &matrix_a, const MatrixCCS &matrix_b,
+                       std::vector<std::complex<double>> &column_c_local, SparseColumn &out_col) {
+  std::ranges::fill(column_c_local, std::complex<double>{0.0, 0.0});
+
+  for (int j = matrix_b.col_ptr[col_idx]; j < matrix_b.col_ptr[col_idx + 1]; j++) {
+    int tmp_ind = matrix_b.row_ind[j];
+    std::complex<double> tmp_val = matrix_b.values[j];
+    for (int ind = matrix_a.col_ptr[tmp_ind]; ind < matrix_a.col_ptr[tmp_ind + 1]; ind++) {
+      int row = matrix_a.row_ind[ind];
+      std::complex<double> val_a = matrix_a.values[ind];
+      column_c_local[row] += tmp_val * val_a;
+    }
+  }
+  for (int index = 0; std::cmp_less(index, column_c_local.size()); ++index) {
+    if (column_c_local[index].real() != 0.0 || column_c_local[index].imag() != 0.0) {
+      out_col.rows.push_back(index);
+      out_col.vals.push_back(column_c_local[index]);
+    }
+  }
+}
+}  // namespace
 
 ShvetsovaKMultMatrixComplexSTL::ShvetsovaKMultMatrixComplexSTL(const InType &in) {
   SetTypeOfTask(GetStaticTypeOfTask());
@@ -49,56 +71,36 @@ bool ShvetsovaKMultMatrixComplexSTL::RunImpl() {
 
   std::vector<SparseColumn> columns_c(matrix_b.cols);
 
-  auto compute_column = [&](int i, std::vector<std::complex<double>> &column_c) {
-    std::ranges::fill(column_c, std::complex<double>{0.0, 0.0});
-
-    for (int j = matrix_b.col_ptr[i]; j < matrix_b.col_ptr[i + 1]; j++) {
-      int tmp_ind = matrix_b.row_ind[j];
-      std::complex<double> tmp_val = matrix_b.values[j];
-      for (int ind = matrix_a.col_ptr[tmp_ind]; ind < matrix_a.col_ptr[tmp_ind + 1]; ind++) {
-        int row = matrix_a.row_ind[ind];
-        std::complex<double> val_a = matrix_a.values[ind];
-        column_c[row] += tmp_val * val_a;
-      }
-    }
-    for (int index = 0; std::cmp_less(index, column_c.size()); ++index) {
-      if (column_c[index].real() != 0.0 || column_c[index].imag() != 0.0) {
-        columns_c[i].rows.push_back(index);
-        columns_c[i].vals.push_back(column_c[index]);
-      }
-    }
-  };
-
-  unsigned int num_threads = std::thread::hardware_concurrency();
-  if (num_threads == 0) {
-    num_threads = 4;  // Запасной вариант, если система не вернула количество потоков
+  int num_threads = static_cast<int>(std::thread::hardware_concurrency());
+  if (num_threads <= 0) {
+    num_threads = 4;
   }
 
   std::vector<std::thread> threads;
   threads.reserve(num_threads);
 
   int cols_per_thread = matrix_b.cols / num_threads;
-  unsigned int remainder = matrix_b.cols % num_threads;
+  int remainder = matrix_b.cols % num_threads;
 
   int current_start = 0;
-  for (unsigned int t = 0; t < num_threads; ++t) {
+  for (int thread_idx = 0; thread_idx < num_threads; ++thread_idx) {
     int start_col = current_start;
-    int end_col = start_col + cols_per_thread + (t < remainder ? 1 : 0);
+    int end_col = start_col + cols_per_thread + (thread_idx < remainder ? 1 : 0);
     current_start = end_col;
 
     if (start_col < end_col) {
       threads.emplace_back([&, start_col, end_col]() {
         std::vector<std::complex<double>> column_c_local(matrix_a.rows, {0.0, 0.0});
         for (int i = start_col; i < end_col; ++i) {
-          compute_column(i, column_c_local);
+          ComputeColumnTask(i, matrix_a, matrix_b, column_c_local, columns_c[i]);
         }
       });
     }
   }
 
-  for (auto &t : threads) {
-    if (t.joinable()) {
-      t.join();
+  for (auto &th : threads) {
+    if (th.joinable()) {
+      th.join();
     }
   }
 
