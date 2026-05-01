@@ -11,6 +11,7 @@
 #include "baldin_a_radix_sort/stl/include/ops_stl.hpp"
 #include "baldin_a_radix_sort/tbb/include/ops_tbb.hpp"
 #include "util/include/perf_test_util.hpp"
+#include "util/include/util.hpp"
 
 namespace baldin_a_radix_sort {
 

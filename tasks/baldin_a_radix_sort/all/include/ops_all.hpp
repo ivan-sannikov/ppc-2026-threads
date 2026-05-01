@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "baldin_a_radix_sort/common/include/common.hpp"
 #include "task/include/task.hpp"
 

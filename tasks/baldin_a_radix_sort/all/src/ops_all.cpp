@@ -2,9 +2,11 @@
 
 #include <mpi.h>
 
-#include <atomic>
-#include <numeric>
-#include <thread>
+#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <iterator>
 #include <vector>
 
 #include "baldin_a_radix_sort/common/include/common.hpp"
@@ -158,9 +160,10 @@ bool BaldinARadixSortALL::RunImpl() {
   }
 
   int local_n = counts_[rank];
-  if (local_n > 0) {
-    int num_threads = ppc::util::GetNumThreads();
 
+  int num_threads = ppc::util::GetNumThreads();
+
+  if (local_n > 0) {
     std::vector<int> local_offsets(num_threads + 1);
     int l_chunk = local_n / num_threads;
     int l_rem = local_n % num_threads;
@@ -199,7 +202,6 @@ bool BaldinARadixSortALL::RunImpl() {
   GatherData(rank);
 
   if (rank == 0) {
-    int num_threads = ppc::util::GetNumThreads();
     auto &out = GetOutput();
 
     std::vector<int> global_offsets(size + 1);
