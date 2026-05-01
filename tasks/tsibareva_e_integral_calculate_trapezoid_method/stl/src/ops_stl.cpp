@@ -41,28 +41,7 @@ bool TsibarevaEIntegralCalculateTrapezoidMethodSTL::RunImpl() {
   std::vector<std::thread> threads(num_threads);
   std::vector<double> partial_sums(num_threads, 0.0);
 
-  auto worker = [&](int thread_id, int start, int end) {
-    double local_sum = 0.0;
-    for (int node = start; node < end; ++node) {
-      int remainder = node;
-      double node_weight = 1.0;
-      std::vector<double> point(dim);
-
-      for (int i = dim - 1; i >= 0; --i) {
-        int idx = remainder % sizes[i];
-        remainder /= sizes[i];
-
-        if (idx == 0 || idx == GetInput().steps[i]) {
-          node_weight *= 0.5;
-        }
-
-        point[i] = GetInput().lo[i] + idx * h[i];
-      }
-
-      local_sum += node_weight * GetInput().f(point);
-    }
-    partial_sums[thread_id] = local_sum;
-  };
+  auto worker = [&](int thread_id, int start, int end) { MWork(thread_id, start, end, sizes, h, partial_sums, dim); };
 
   int nodes_per_thread = total_nodes / num_threads;
   int remainder_nodes = total_nodes % num_threads;
@@ -93,6 +72,32 @@ bool TsibarevaEIntegralCalculateTrapezoidMethodSTL::RunImpl() {
 
 bool TsibarevaEIntegralCalculateTrapezoidMethodSTL::PostProcessingImpl() {
   return true;
+}
+
+void TsibarevaEIntegralCalculateTrapezoidMethodSTL::MWork(int thread_id, int start, int end,
+                                                          const std::vector<int> &sizes, const std::vector<double> &h,
+                                                          std::vector<double> &partial_sums, int dim) {
+  double local_sum = 0.0;
+
+  for (int node = start; node < end; ++node) {
+    int remainder = node;
+    double node_weight = 1.0;
+    std::vector<double> point(dim);
+
+    for (int i = dim - 1; i >= 0; --i) {
+      int idx = remainder % sizes[i];
+      remainder /= sizes[i];
+
+      if (idx == 0 || idx == GetInput().steps[i]) {
+        node_weight *= 0.5;
+      }
+
+      point[i] = GetInput().lo[i] + (idx * h[i]);
+    }
+
+    local_sum += node_weight * GetInput().f(point);
+  }
+  partial_sums[thread_id] = local_sum;
 }
 
 }  // namespace tsibareva_e_integral_calculate_trapezoid_method
